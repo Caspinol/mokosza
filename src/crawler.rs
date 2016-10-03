@@ -6,8 +6,9 @@
 use std::error::Error;
 
 // Project libs
-use domain::{ Domain, DomainError };
+use domain::Domain;
 use domain::domain_url::DomainURL;
+use domain::domain_error::DomainError;
 
 pub fn crawl_domain(url: &str) -> Result<(), DomainError> {
 
