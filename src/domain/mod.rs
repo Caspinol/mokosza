@@ -50,18 +50,21 @@ impl<'a> PartialEq for Domain<'a> {
 }
 
 impl<'a> Domain<'a> {
-    pub fn new(domain: &str) -> Domain {
+    pub fn new(domain_url: &str) -> Domain {
         let mut dom = Domain {
-            domain: domain,
+            domain: domain_url,
             robots: Vec::new(),
             paths_visited: Vec::new(),
             paths_to_visit: Vec::new(),
         };
 
+        // Add the actual domin URL to list
+        dom.add_to_visit(domain_url);
+
         let _ = dom.check_robots()
             .map_err(|err| println!("Error: {}", err.description()))
             .and_then(|()| {
-                println!("Succesfully fetched robots.txt from: {} ", domain);
+                println!("Succesfully fetched robots.txt from: {} ", domain_url);
                 println!("We have {} disallowed paths", dom.robots.len());
                 Ok(())
             });
@@ -92,10 +95,6 @@ impl<'a> Domain<'a> {
             self.paths_to_visit.push(s);
         }
         self.paths_to_visit.len()
-    }
-
-    pub fn get_next_to_visit(&mut self) -> Option<String> {
-        self.paths_to_visit.pop()
     }
 
     fn is_url_in_robots(&self, url: &str) -> bool {
@@ -187,13 +186,16 @@ fn test_add_to_visit() {
     // Test if list of to be visited URL takes in duplicates
     let mut dom = Domain::new("");
     dom.add_to_visit("http://example.com/fff");
-    assert_eq!(dom.paths_to_visit.len(), 1);
-
-    dom.add_to_visit("http://example.com/fff");
-    assert_eq!(dom.paths_to_visit.len(), 1);
-
-    dom.add_to_visit("http://example.com/ggg");
+    // Should be +1 as the domain ur tself is also added
     assert_eq!(dom.paths_to_visit.len(), 2);
+
+    // Should skip duplicate
+    dom.add_to_visit("http://example.com/fff");
+    assert_eq!(dom.paths_to_visit.len(), 2);
+
+    // Should be added
+    dom.add_to_visit("http://example.com/ggg");
+    assert_eq!(dom.paths_to_visit.len(), 3);
 }
 
 

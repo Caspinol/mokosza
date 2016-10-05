@@ -1,4 +1,6 @@
+// Crates
 extern crate curl;
+extern crate postgres;
 
 use std::fmt;
 use std::error;
@@ -12,6 +14,7 @@ pub enum DomainError {
     RobotsError,
     InvalidURL,
     FetchError(curl::Error),
+    DBError(postgres::error::ConnectError)
 }
 
 impl fmt::Display for DomainError {
@@ -21,6 +24,7 @@ impl fmt::Display for DomainError {
             DomainError::RobotsError => write!(f, "robot.txt missing or malformed"),
             DomainError::InvalidURL => write!(f, "Malformed url"),
             DomainError::FetchError(ref err) => write!(f, "Failed to grab domain: {}", err),
+            DomainError::DBError(ref err) => write!(f, "DB error: {}", err),
         }
     }
 }
@@ -32,6 +36,7 @@ impl error::Error for DomainError {
             DomainError::RobotsError => "robots.txt file missing or malformed.",
             DomainError::InvalidURL => "Specified URL is invalid/malformed",
             DomainError::FetchError(ref err) => err.description(),
+            DomainError::DBError(ref err) => err.description(),
         }
     }
 
@@ -41,6 +46,7 @@ impl error::Error for DomainError {
             DomainError::RobotsError => None,
             DomainError::InvalidURL => None,
             DomainError::FetchError(ref err) => err.cause(),
+            DomainError::DBError(ref err) => err.cause(),
         }
     }
 }
@@ -48,5 +54,11 @@ impl error::Error for DomainError {
 impl From<curl::Error> for DomainError {
     fn from(err: curl::Error) -> DomainError {
         DomainError::FetchError(err)
+    }
+}
+
+impl From<postgres::error::ConnectError> for DomainError {
+    fn from(err: postgres::error::ConnectError) -> DomainError {
+        DomainError::DBError(err)
     }
 }

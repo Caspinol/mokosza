@@ -26,7 +26,7 @@ impl DomainURL {
             re_domain: Regex::new(r###"(https?://[^/'"?&]*)"###).unwrap(),
             
             // Validate if string is a valid URL i.e http://www.example.com
-            re_is_url: Regex::new(r###"^https?://(?:www\.)?[a-z0-9]+[^/'"?&][a-z\.]{2,5}/{0,1}$"###).unwrap(),
+            re_is_url: Regex::new(r###"^https?://(?:www\.)?[a-z0-9]+[^/'"?&]\.[a-z\.]{2,5}/{0,1}$"###).unwrap(),
         }
     }
     fn get_domain_part<'a>(&self, url: &'a str) -> Option<String> {
@@ -65,7 +65,10 @@ impl DomainURL {
                                 println!("Adding new URL: \"{}\"", cap);
                                 dom.add_to_visit(cap);
                             } else {
-                                other.push(cap.to_string());
+                                // Extract only the domain part of URL
+                                if let Some(domain_url) = self.get_domain_part(cap) {
+                                    other.push(domain_url.to_string());
+                                }
                             }
                         }
                             
@@ -74,7 +77,7 @@ impl DomainURL {
         }
     }
 
-    pub fn is_URL(&self, s: &str) -> bool {
+    pub fn is_url(&self, s: &str) -> bool {
         self.re_is_url.is_match(s)
     }
 }
@@ -114,17 +117,17 @@ fn test_is_domain() {
     let dom = DomainURL::new();
 
     let astring = "<a href='http://www.example.com/dddddd/gggggg?param=3455' >link</a>";
-    assert_eq!(dom.is_URL(astring), false);
+    assert_eq!(dom.is_url(astring), false);
 
     let astring = "http://www.example.com/dddddd/gggggg?param=3";
-    assert_eq!(dom.is_URL(astring), false);
+    assert_eq!(dom.is_url(astring), false);
 
     let astring = "http://www.example.com/";
-    assert_eq!(dom.is_URL(astring), true);
+    assert_eq!(dom.is_url(astring), true);
 
     let astring = "http://example.com/";
-    assert_eq!(dom.is_URL(astring), true);
+    assert_eq!(dom.is_url(astring), true);
 
     let astring = "https://example.co.uk/";
-    assert_eq!(dom.is_URL(astring), true);
+    assert_eq!(dom.is_url(astring), true);
 }
