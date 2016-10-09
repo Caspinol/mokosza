@@ -46,18 +46,18 @@ impl DB {
             }
         }
     }
-
-    pub fn store_domains(&self, list: &Vec<String>) -> Result<u64, error::Error> {
+    
+    pub fn prepared_stmt<T: ToSql>(&self, query: &str, list: &Vec<T>)
+                                   -> Result<u64, error::Error> {
         let mut modified = 0;
         match self.conn {
             Some(ref c) => {
-                match c.prepare("INSERT INTO domain_list (domain_url) VALUES ($1)") {
+                match c.prepare(query) {
                     Ok(stmt) => {
-                        list.iter().map(|url| {
-                            stmt.execute(&[url])
-                                .map_err(|err| err)
-                                .and_then(|res| Ok(modified += res))
-                        }).collect::<Vec<_>>();
+                        for elem in list {
+                            stmt.execute(&[&elem]).map_err(|err| err)
+                                .and_then(|res| Ok(modified += res));
+                        }
                         Ok(modified)
                     },
                     Err(err) => Err(err)
@@ -116,22 +116,5 @@ fn test_db_query() {
         
         let res = db.execute("DROP TABLE test;", &[]);
         assert_eq!(res.unwrap(), 0u64);
-        
-        let mut list: Vec<String> = Vec::new();
-        list.push("www.example1.com".to_string());
-        list.push("www.example2.com".to_string());
-        list.push("www.example3.com".to_string());
-        let res = db.store_domains(&list);
-        assert_eq!(res.unwrap(), 3u64);
-        
-        let res = db.execute("DELETE FROM domain_list WHERE domain_url='www.example1.com'",
-                             &[]);
-        assert_eq!(res.unwrap(), 1u64);
-        let res = db.execute("DELETE FROM domain_list WHERE domain_url='www.example2.com'",
-                             &[]);
-        assert_eq!(res.unwrap(), 1u64);
-        let res = db.execute("DELETE FROM domain_list WHERE domain_url='www.example3.com'",
-                             &[]);
-        assert_eq!(res.unwrap(), 1u64);
     }
 }

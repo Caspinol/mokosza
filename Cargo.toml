@@ -4,6 +4,8 @@ version = "0.1.0"
 authors = ["Caspinol <kris@catdamnit.com>"]
 
 [dependencies]
-postgres = "0.11"
-curl     = "0.3"
-regex = "0.1.77"
+nix             = "0.7"
+time            = "*"
+postgres        = "0.11"
+curl            = "0.3"
+regex           = "0.1.77"

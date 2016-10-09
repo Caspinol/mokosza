@@ -9,13 +9,9 @@ use std::error::Error;
 use domain::{ Domain };
 use domain::domain_url::DomainURL;
 use domain::domain_error::DomainError;
-use db::DB;
+
 
 pub fn crawl_domain(domain_url: &str) -> Result<(), DomainError> {
-
-    let db = try!(DB::new("postgresql://mokosza:mokoszamokosza@\
-                           catdamnit.chs4hglw5opg.eu-west-1.rds.amazonaws.com:5432/mokosza")
-                  .map_err(DomainError::DBError));
     
     let durl = DomainURL::new();
 
@@ -43,7 +39,7 @@ pub fn crawl_domain(domain_url: &str) -> Result<(), DomainError> {
                         /*
                         Write all links that point out of domain to db
                         */
-                        db.store_domains(&other_domains);
+                        domain.store_domains(&other_domains);
                         
                         // Here page can be send to other system for keywork analysys
                         // analyze(*p)    
