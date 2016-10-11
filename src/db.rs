@@ -8,8 +8,6 @@ use self::postgres::types::ToSql;
 use self::postgres::rows::Rows;
 use self::postgres::error;
 
-use domain::domain_error::DomainError;
-
 pub struct DB {
     pub conn: Option<Connection>,
 }
@@ -55,7 +53,7 @@ impl DB {
                 match c.prepare(query) {
                     Ok(stmt) => {
                         for elem in list {
-                            stmt.execute(&[&elem]).map_err(|err| err)
+                            let _ = stmt.execute(&[&elem]).map_err(|err| err)
                                 .and_then(|res| Ok(modified += res));
                         }
                         Ok(modified)
@@ -67,6 +65,51 @@ impl DB {
                 Err(error::Error::Io(io::Error::new(io::ErrorKind::NotConnected,
                                                     "DB: We are not connected to DB")))
             }
+        }
+    }
+
+    pub fn store_domains(&self, list: &Vec<String>) {
+        let query = "INSERT INTO domain_list (domain_url) VALUES ($1)";
+        let _ = self.prepared_stmt(query, &list);
+    }
+    
+    pub fn next_domain(&self) -> Option<String> {
+        let q = "SELECT domain_url FROM domain_list WHERE crawled_at is null \
+                 AND status='new' LIMIT 1";
+
+        match self.query(q, &[]) {
+            Err(_) => None,
+            Ok(row) => {
+                let q = "UPDATE domain_list SET status='processing'  WHERE domain_url=$1";
+                match row.into_iter().next() {
+                    None => { None },
+                    Some(url_row) => {
+                        let url: String = url_row.get(0);
+                        let _ = self.execute(q, &[&url.as_str()]);
+                        Some(url)
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn domain_done(&self, url: &str) -> Result<(),()> {
+        let q = "UPDATE domain_list SET status='done', crawled_at=NOW() \
+                 WHERE domain_url=$1";
+
+        match self.execute(q, &[&url]) {
+            Err(_) => Err(()),
+            Ok(_) => Ok(())
+        }
+    }
+
+    pub fn domain_err(&self, url: &str) -> Result<(),()> {
+        let q = "UPDATE domain_list SET status='invalid', crawled_at=NOW() \
+                 WHERE domain_url=$1";
+        let res = self.execute(q, &[&url]);
+        match res {
+            Err(_) => Err(()),
+            Ok(_) => Ok(())
         }
     }
 }

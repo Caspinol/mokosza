@@ -14,7 +14,6 @@ use std::ops::Deref;
 use std::error::Error;
 
 use domain::domain_error::DomainError;
-use db::DB;
 
 /* 
 Page struct definition
@@ -42,7 +41,6 @@ pub struct Domain<'a> {
     pub paths_visited: Vec<String>,
     pub paths_to_visit: Vec<String>,
     robots: Vec<String>,
-    db_conn: DB,
 }
 
 impl<'a> PartialEq for Domain<'a> {
@@ -53,24 +51,12 @@ impl<'a> PartialEq for Domain<'a> {
 
 impl<'a> Domain<'a> {
     pub fn new(domain_url: &str) -> Domain {
-
-        let connection_string = "postgresql://mokosza:mokoszamokosza@\
-                                 catdamnit.chs4hglw5opg.eu-west-1.rds.amazonaws.com:5432/\
-                                 mokosza";
-        let conn = match DB::new(connection_string) {
-            Ok(connection) => connection,
-            Err(err) => {
-                println!("{}",err);
-                panic!("Failed to connect to database")
-            }
-        };
-        
+ 
         let mut dom = Domain {
             domain: domain_url,
             robots: Vec::new(),
             paths_visited: Vec::new(),
             paths_to_visit: Vec::new(),
-            db_conn: conn
         };
 
         // Add the actual domin URL to list
@@ -106,15 +92,13 @@ impl<'a> Domain<'a> {
     pub fn add_to_visit(&mut self, url: &str) -> usize {
         // We dont want any duplicates here
         let s = url.to_owned();
-        if !self.paths_to_visit.contains(&s) {
+        // Add it if not already in list and
+        // if was not visited before
+        if !self.paths_to_visit.contains(&s)
+            && !self.paths_visited.contains(&s) {
             self.paths_to_visit.push(s);
         }
         self.paths_to_visit.len()
-    }
-
-    pub fn store_domains(&self, list: &Vec<String>) {
-        let query = "INSERT INTO domain_list (domain_url) VALUES ($1)";
-        let _ = self.db_conn.prepared_stmt(query, &list);
     }
 
     fn is_url_in_robots(&self, url: &str) -> bool {

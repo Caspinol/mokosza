@@ -8,6 +8,7 @@ use self::regex::Regex;
 
 // Project libs
 use domain::Domain;
+use log::*;
 
 pub struct DomainURL {
     re_full_url: Regex,
@@ -44,29 +45,31 @@ impl DomainURL {
     }
 
     pub fn find_all_url(&self, page: &str, dom: &mut Domain, other: &mut Vec<String>) {
-        println!("Parsing page for links");
+        log_info(&format!("Parsing {} for links", page));
         for capture in self.re_full_url.captures_iter(page) {
             if let Some(cap) = capture.at(1) {
                 /* Skip all urls ending with
                 .jpg, js, .pdf, .css etc.
                 there must be a better way to do this
                  */
-                if cap.ends_with(".jpg")
-                    | cap.ends_with(".js")
-                    | cap.ends_with(".css")
+                if cap.ends_with(".jpg") | cap.ends_with(".gif")
+                    | cap.ends_with(".js") | cap.ends_with(".css")
                     | cap.ends_with(".png") {
-                        println!("URL: {} ends with invalid extension...skipping", cap);
+                        log_warn(&format!("URL: {} ends with invalid extension...skipping",
+                                          cap));
                     } else {
                         if let Some(dpart) = self.get_domain_part(cap) {
                             /* 
                             Also check if URL belongs to the domain we are crawling right now.
                              */
                             if dpart == dom.domain {
-                                println!("Adding new URL: \"{}\"", cap);
+                                log_info(&format!("Adding new URL: \"{}\"", cap));
                                 dom.add_to_visit(cap);
                             } else {
                                 // Extract only the domain part of URL
                                 if let Some(domain_url) = self.get_domain_part(cap) {
+                                    log_info(&format!("Found URL for external domain: \"{}\"",
+                                                      domain_url));
                                     other.push(domain_url.to_string());
                                 }
                             }
