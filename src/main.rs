@@ -1,8 +1,8 @@
 // Crates
-extern crate nix;
 #[macro_use]
 extern crate chan;
 extern crate chan_signal;
+extern crate nix;
 
 // Module imports
 mod domain;
@@ -17,13 +17,13 @@ use std::thread;
 //Extern libs
 use nix::unistd::{ fork, chdir, ForkResult };
 use nix::sys::stat::{ umask, Mode };
-use chan_signal::{Signal, notify};
+use chan_signal::{ notify, Signal };
 
 // Project libs
 use log::{log_info, log_err, log_warn};
 
-//use domain::Domain;
 
+const THREADS: usize = 5;
 
 fn main() {
     
@@ -51,47 +51,62 @@ fn main() {
                 ::std::process::exit(1);
             }
 
-            //let mut threads = Vec::new();
-            //log_info("Spawning threads");
-            //for _ in 0..4 {
-                let _ = thread::spawn(move || {
-                    run();
-                });
-            //    threads.push(child);
-           // }
-            
-            //for t in threads {
-            //    t.join().unwrap();
-            //}
-            
             // Register a signal handler
-            let signal = notify(&[Signal::INT]);
+            let signal = notify(&[Signal::INT, Signal::KILL]);
+            let (tx, rx) = chan::sync(THREADS);
+
+
+            // Create the crawler threads
+            log_info("Spawning threads");
+            for _ in 0..THREADS {
+                let rx = rx.clone();
+                thread::spawn(move || {
+                    run(rx);
+                });
+            }
+
+            // Create URL feeder thread
+            thread::spawn(move || {
+                let db = db::DB::new("postgresql://mokosza:mokoszamokosza@\
+                                      catdamnit.chs4hglw5opg.eu-west-1.rds.amazonaws.com\
+                                      :5432/mokosza");
+                if let Ok(conn) = db {
+        
+                    while let Some(url) = conn.next_domain() {
+
+                        tx.send(url)
+                    }
+                }
+            });
+            
             // Handle signal when received
             chan_select! {
                 signal.recv() -> sig => {
-                    log_warn(&format!("Received INT signal: {:?}", sig.unwrap()));
+                    log_warn(&format!("Received signal: {:?}", sig.unwrap()));
                 },
             }
         },
     }
 }
 
-fn run() {
+fn run(rx: chan::Receiver<String>) {
     let db = db::DB::new("postgresql://mokosza:mokoszamokosza@\
                           catdamnit.chs4hglw5opg.eu-west-1.rds.amazonaws.com:5432/mokosza");
     log_info("Succesfully connected to database...");
     if let Ok(conn) = db {
         loop {
             log_info("Fetching new domain");
-            match conn.next_domain() {
+            match rx.recv() {
                 None => break,
                 Some(url) => {
                     log_info(&format!("Gonna crawl [{}]", url));
                     let crawl_result = crawler::crawl_domain(&url, |page, other| {
+                        // Here we can do something with the page
+                        // i.e. store it, send it etc.
+                        // Now jus print it
                         println!("{}",*page);
                         conn.store_domains(&other);
                     });
-                    // Regardless of result mark domain as processed
                     
                     match crawl_result {
                         Ok(_) => {
