@@ -71,7 +71,6 @@ fn main() {
                                       catdamnit.chs4hglw5opg.eu-west-1.rds.amazonaws.com\
                                       :5432/mokosza");
                 if let Ok(conn) = db {
-        
                     while let Some(url) = conn.next_domain() {
 
                         tx.send(url)

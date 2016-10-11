@@ -14,6 +14,7 @@ use std::ops::Deref;
 use std::error::Error;
 
 use domain::domain_error::DomainError;
+use log::*;
 
 /* 
 Page struct definition
@@ -63,10 +64,10 @@ impl<'a> Domain<'a> {
         dom.add_to_visit(domain_url);
 
         let _ = dom.check_robots()
-            .map_err(|err| println!("Error: {}", err.description()))
+            .map_err(|err| log_err(&format!("Error: {}", err.description())))
             .and_then(|()| {
-                println!("Succesfully fetched robots.txt from: {} ", domain_url);
-                println!("We have {} disallowed paths", dom.robots.len());
+                log_info(&format!("Succesfully fetched robots.txt from: {} ", domain_url));
+                log_info(&format!("We have {} disallowed paths", dom.robots.len()));
                 Ok(())
             });
         dom
@@ -74,7 +75,7 @@ impl<'a> Domain<'a> {
 
     pub fn get_webpage(&self, url: &str) -> Result<Page, DomainError> {
         if self.is_url_in_robots(url) {
-            println!("{} skipped. Forbidden by robots.txt", url);
+            log_warn(&format!("{} skipped. Forbidden by robots.txt", url));
             return Err(DomainError::SkippedURL);
         }
 

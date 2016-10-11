@@ -28,12 +28,12 @@ pub fn crawl_domain<F>(domain_url: &str, handle_page: F)
     loop {
         match domain.paths_to_visit.pop() {
             Some(url) => {
-                println!("Downloading content from {}", url);
+                log_info(&format!("Downloading content from {}", url));
                 let page_result = domain.get_webpage(&url);
                 match page_result {
                     Ok(p) => {
                         let mut other_domains: Vec<String> = Vec::new();
-                        println!("Downloading {} succesful", url);
+                        log_info(&format!("Downloading {} succesful", url));
                         durl.find_all_url(&*p, &mut domain, &mut other_domains);
                         log_info(&format!("Found {} links for current domain and {} \
                                   pointing to different domain",
