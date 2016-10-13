@@ -19,13 +19,11 @@ use log::*;
 /* 
 Page struct definition
  */
-pub struct Page {
-    pub page: String,
-}
+pub struct Page(String);
 
 impl fmt::Display for Page {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.page)
+        write!(f, "{}", self.0)
     }
 }
 
@@ -33,7 +31,7 @@ impl Deref for Page {
     type Target = String;
 
     fn deref(&self) -> &String {
-        &self.page
+        &self.0
     }
 }
 
@@ -136,9 +134,7 @@ impl<'a> Domain<'a> {
         I can live with a odd letter malformed here and there
          */
         unsafe {
-            return Ok(Page {
-                page: String::from_utf8_unchecked(dst)
-            })
+            return Ok(Page(String::from_utf8_unchecked(dst)))
         }
     }
 
@@ -150,14 +146,14 @@ impl<'a> Domain<'a> {
     fn check_robots(&mut self) -> Result<(), DomainError>{
 
         let robots_url = self.get_robots_url();
-        println!("Fetching robots.txt from {}", robots_url);
+        log_info(&format!("Fetching robots.txt from {}", robots_url));
         match self.page_curl(&robots_url) {
             Ok(res) => {
                 // Extract forbidden URLs from robots
-                for robots_line in res.page.lines() {
+                for robots_line in res.lines() {
                     let line: Vec<&str> = robots_line.split_terminator(':').collect();
                     if line.len() == 2 && line[0].contains("Disallow") {
-                        println!("Disallow: {}", line[1]);
+                        log_info(&format!("Disallow: {}", line[1]));
                         self.robots.push(String::from(line[1]));
                     } else {
                         return Err(DomainError::RobotsError);
