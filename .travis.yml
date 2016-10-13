@@ -1,5 +1,9 @@
 language: rust
 rust:
 - 1.11.0
+cache: cargo
+sudo: required
+addons:
+  postgresql: 9.4
 script:
 - cargo test
