@@ -117,7 +117,7 @@ pub fn domain_err(pool: &DBPool, url: &str) -> Result<(),()> {
 #[test]
 fn test_db_query() {
     let pool = new_pool("postgresql://mokosza:mokoszamokosza@\
-                           catdamnit.chs4hglw5opg.eu-west-1.rds.amazonaws.com:5432/mokosza");
+                         catdamnit.chs4hglw5opg.eu-west-1.rds.amazonaws.com:5432/mokosza", 10);
 
     let _ = execute(&pool, "DROP TABLE test;", &[]);
     let res = execute(&pool, "CREATE TABLE test (\
